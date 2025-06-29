@@ -1,31 +1,65 @@
 import pandas as pd
 import dash
-from dash import html, dcc
+from dash import html, dcc, Input, Output
 import plotly.express as px
 
-# Load data
-df = pd.read_csv('data/merged_sales_data.csv')  # replace with your actual file
-
-# Ensure date column is datetime
+# Load and prepare data
+df = pd.read_csv("data/merged_sales_data.csv")
 df['date'] = pd.to_datetime(df['date'])
 
-# Group by date and sum sales
-sales_by_date = df.groupby('date')['sales'].sum().reset_index()
-
-# Create line chart
-fig = px.line(sales_by_date, x='date', y='sales', title='Total Sales Over Time',
-              labels={'date': 'Date', 'sales': 'Total Sales ($)'})
-
-# Mark the price change date
-fig.add_vline(x='2021-01-15', line_dash="dash", line_color="red", annotation_text="Price Increase", annotation_position="top left")
-
-# Build Dash app
+# Setup Dash app
 app = dash.Dash(__name__)
 
-app.layout = html.Div([
-    html.H1("Sales Impact of Pink Morsel Price Increase", style={'textAlign': 'center'}),
-    dcc.Graph(figure=fig)
-])
+app.layout = html.Div(
+    style={'fontFamily': 'Arial', 'padding': '2rem', 'backgroundColor': '#f9f9f9'},
+    children=[
+        html.H1("Pink Morsel Sales Trend by Region", style={'textAlign': 'center'}),
+        
+        html.Div([
+            html.Label("Select Region:", style={'fontSize': '18px'}),
+            dcc.RadioItems(
+                id='region-radio',
+                options=[
+                    {'label': 'All', 'value': 'all'},
+                    {'label': 'North', 'value': 'north'},
+                    {'label': 'East', 'value': 'east'},
+                    {'label': 'South', 'value': 'south'},
+                    {'label': 'West', 'value': 'west'},
+                ],
+                value='all',
+                labelStyle={'display': 'inline-block', 'marginRight': '15px'}
+            ),
+        ], style={'textAlign': 'center', 'marginBottom': '20px'}),
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+        dcc.Graph(id='sales-graph')
+    ]
+)
+
+# Callback to update chart based on selected region
+@app.callback(
+    Output('sales-graph', 'figure'),
+    Input('region-radio', 'value')
+)
+def update_graph(selected_region):
+    if selected_region == 'all':
+        filtered_df = df
+    else:
+        filtered_df = df[df['region'] == selected_region]
+
+    sales_by_date = filtered_df.groupby('date')['sales'].sum().reset_index()
+
+    fig = px.line(
+        sales_by_date,
+        x='date',
+        y='sales',
+        title=f"Sales Trend - {selected_region.capitalize()} Region" if selected_region != 'all' else "Sales Trend - All Regions",
+        labels={'date': 'Date', 'sales': 'Total Sales ($)'}
+    )
+
+    fig.add_vline(
+        x='2021-01-15',
+        line_dash="dash",
+        line_color="red",
+        annotation_text="Price Increase",
+        annotation_position="_
+  
